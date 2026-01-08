@@ -20,10 +20,31 @@ Or if installed:
 echobox
 ```
 
-The server will start on port 5867 by default. You can customize the port using the `PORT` environment variable:
+### Configuration
+
+The server will start on port 5867 by default. You can customize the port and timeouts using environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Server port | `5867` |
+| `READ_TIMEOUT` | Read timeout in seconds | `30` |
+| `WRITE_TIMEOUT` | Write timeout in seconds | `30` |
 
 ```bash
 PORT=8080 echobox
+PORT=3000 READ_TIMEOUT=60 WRITE_TIMEOUT=60 echobox
+```
+
+### Using Make
+
+If you have cloned the repository, you can use the Makefile:
+
+```bash
+make build    # Build the binary
+make run      # Run the application
+make test     # Run tests
+make install  # Install to GOPATH/bin
+make help     # Show all available targets
 ```
 
 ## Endpoints
@@ -57,3 +78,47 @@ curl "localhost:5867/queries?foo=bar&baz=qux"
 curl localhost:5867/404
 curl localhost:5867/500
 ```
+
+## Project Structure
+
+```
+echobox/
+├── cmd/
+│   └── echobox/          # Application entry point
+│       └── main.go
+├── internal/
+│   ├── config/           # Configuration management
+│   │   └── config.go
+│   ├── handler/          # HTTP handlers
+│   │   └── handler.go
+│   └── router/           # Routing setup
+│       └── router.go
+├── go.mod
+├── go.sum
+├── Makefile
+├── LICENSE
+└── README.md
+```
+
+## Development
+
+```bash
+# Run tests
+make test
+
+# Run with coverage
+make test-coverage
+
+# Format code
+make fmt
+
+# Vet code
+make vet
+
+# Build
+make build
+```
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
