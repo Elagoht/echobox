@@ -95,6 +95,8 @@ jobs:
     needs: [release-type, build]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -113,6 +115,7 @@ jobs:
           fi
 
           gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
             --title "$TAG" \
             --notes "$NOTES" \
             $( [ "$PRERELEASE" = "true" ] && echo "--prerelease" ) \
