@@ -1,0 +1,119 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release-type:
+    runs-on: ubuntu-latest
+    outputs:
+      prerelease: ${{ steps.check.outputs.prerelease }}
+    steps:
+      - id: check
+        run: |
+          if [[ "${{ github.ref_name }}" =~ -(alpha|beta|rc) ]]; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    needs: release-type
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS
+          - goos: darwin
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+
+          # Windows
+          - goos: windows
+            goarch: arm64
+            ext: .exe
+          - goos: windows
+            goarch: amd64
+            ext: .exe
+
+          # BSDs
+          - goos: freebsd
+            goarch: arm64
+          - goos: freebsd
+            goarch: amd64
+          - goos: openbsd
+            goarch: arm64
+          - goos: openbsd
+            goarch: amd64
+          - goos: netbsd
+            goarch: arm64
+          - goos: netbsd
+            goarch: amd64
+
+          # Linux
+          - goos: linux
+            goarch: arm64
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: riscv64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          NAME="echobox-${GOOS}-${GOARCH}${{ matrix.ext }}"
+          go build -trimpath -ldflags="-s -w" -o "$NAME"
+
+          if [ "$GOOS" != "windows" ]; then
+            gzip -f "$NAME"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: echobox-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: echobox-${{ matrix.goos }}-${{ matrix.goarch }}*
+          if-no-files-found: error
+
+  release:
+    needs: [release-type, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          PRERELEASE="${{ needs.release-type.outputs.prerelease }}"
+
+          NOTES="Release $TAG"
+          if [ "$PRERELEASE" = "true" ]; then
+            NOTES="$NOTES
+
+          **Prerelease build**"
+          fi
+
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes "$NOTES" \
+            $( [ "$PRERELEASE" = "true" ] && echo "--prerelease" ) \
+            artifacts/*/*
