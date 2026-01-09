@@ -79,7 +79,7 @@ jobs:
           CGO_ENABLED: 0
         run: |
           NAME="echobox-${GOOS}-${GOARCH}${{ matrix.ext }}"
-          go build -trimpath -ldflags="-s -w" -o "$NAME"
+          go build -trimpath -ldflags="-s -w" -o "$NAME" ./cmd/echobox
 
           if [ "$GOOS" != "windows" ]; then
             gzip -f "$NAME"
